@@ -598,6 +598,11 @@ document.getElementById("coachBtn").onclick=toggleCoach;
 document.getElementById("coachClose").onclick=toggleCoach;
 
 /* ============ MENTIMETER SLOTS ============ */
+const MENTI_DEFAULTS={
+  mOpen:"https://www.mentimeter.com/app/presentation/alk6tcpfimw8ob696bko1tm6eaxbifs2/embed",
+  mQuiz:"https://www.mentimeter.com/app/presentation/albcujbb741kypnhoye52658zt7zb3fy/embed",
+  mFeedback:"https://www.mentimeter.com/app/presentation/alfn6v6dq9n99uo3xu7govabd2f3ip7w/embed"
+};
 function mentiSrc(raw){
   raw=raw.trim(); if(!raw) return "";
   const m=raw.match(/src="([^"]+)"/i); if(m) return m[1];
@@ -606,7 +611,7 @@ function mentiSrc(raw){
 }
 function renderMenti(el){
   const key=el.dataset.key, title=el.dataset.title||"Mentimeter";
-  const saved=localStorage.getItem("bcMenti_"+key)||"";
+  const saved=localStorage.getItem("bcMenti_"+key)||MENTI_DEFAULTS[key]||"";
   if(saved){
     el.innerHTML=`<div class="mhead">📊 ${title} — risultati live<button class="cfg" data-cfg="${key}">⚙️ cambia</button></div><iframe src="${saved}" allowfullscreen></iframe>`;
   }else{
