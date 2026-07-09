@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blockchain — Lezione interattiva (Master Carbon Farming)</title>
+<style>
+  :root{
+    --bg:#0d1220; --bg2:#121a2c; --card:#182238; --card2:#1e2b45;
+    --ink:#e8eef7; --ink-dim:#a3b3cc; --ink-faint:#647392;
+    --green:#34d399; --green-dim:#10b981; --teal:#2dd4bf; --amber:#fbbf24;
+    --blue:#60a5fa; --violet:#a78bfa; --rose:#fb7185; --gold:#f5c451;
+    --border:#26344f; --radius:14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); overflow:hidden;}
+  #app{display:flex; height:100vh;}
+  #sidebar{width:280px; min-width:280px; background:var(--bg2); border-right:1px solid var(--border); display:flex; flex-direction:column; transition:margin-left .3s;}
+  #sidebar.hidden{margin-left:-280px;}
+  #sidebar header{padding:18px 16px 10px;}
+  #sidebar header h1{font-size:.95rem; line-height:1.3; color:var(--blue);}
+  #sidebar header p{font-size:.72rem; color:var(--ink-faint); margin-top:4px;}
+  #nav{flex:1; overflow-y:auto; padding:6px 8px 16px;}
+  .nav-part{font-size:.65rem; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-faint); padding:14px 10px 4px;}
+  .nav-item{display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; font-size:.8rem; color:var(--ink-dim); cursor:pointer; user-select:none;}
+  .nav-item:hover{background:var(--card);}
+  .nav-item.active{background:var(--card2); color:var(--ink);}
+  .nav-item .t{margin-left:auto; font-size:.64rem; color:var(--ink-faint); background:var(--bg); padding:1px 6px; border-radius:6px;}
+  #clock{padding:12px 16px; border-top:1px solid var(--border); font-size:.78rem; color:var(--ink-dim); display:flex; justify-content:space-between; align-items:center;}
+  #clock b{color:var(--blue); font-variant-numeric:tabular-nums;}
+  #clock button{background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:.72rem;}
+  #clock button:hover{color:var(--ink);}
+  #main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  #topbar{display:flex; align-items:center; gap:10px; padding:10px 18px; border-bottom:1px solid var(--border);}
+  #progress{flex:1; height:4px; background:var(--card); border-radius:2px; overflow:hidden;}
+  #progress div{height:100%; background:linear-gradient(90deg,var(--blue),var(--teal)); width:0%; transition:width .3s;}
+  #where{font-size:.72rem; color:var(--ink-faint); white-space:nowrap;}
+  .iconbtn{background:var(--card); border:1px solid var(--border); color:var(--ink-dim); border-radius:8px; padding:6px 12px; cursor:pointer; font-size:.8rem;}
+  .iconbtn:hover{color:var(--ink); border-color:var(--blue);}
+  #stage{flex:1; overflow-y:auto; padding:30px 46px;}
+  .screen{display:none; max-width:1080px; margin:0 auto; animation:fade .35s;}
+  .screen.active{display:block;}
+  @keyframes fade{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+  .kicker{font-size:.72rem; text-transform:uppercase; letter-spacing:.16em; color:var(--blue); margin-bottom:10px;}
+  h2{font-size:1.8rem; line-height:1.2; margin-bottom:8px; font-weight:700;}
+  h3{font-size:1.02rem;}
+  .sub{color:var(--ink-dim); font-size:1rem; margin-bottom:22px; max-width:840px; line-height:1.5;}
+  .takeaway{margin-top:22px; padding:14px 18px; border-left:3px solid var(--blue); background:var(--card); border-radius:0 var(--radius) var(--radius) 0; font-size:.93rem; line-height:1.5;}
+  .takeaway b{color:var(--blue);}
+  .hint{font-size:.74rem; color:var(--ink-faint); margin-top:10px; line-height:1.5;}
+  ul{margin:.4em 0 .4em 1.2em;} li{margin:.3em 0; font-size:.9rem; color:var(--ink-dim); line-height:1.5;}
+  li b, p b{color:var(--ink);}
+  .warn{color:var(--rose)!important;} .warn b{color:var(--rose);}
+  p{font-size:.92rem; line-height:1.6; color:var(--ink-dim);}
+  .grid{display:grid; gap:13px;}
+  .g2{grid-template-columns:repeat(2,1fr);} .g3{grid-template-columns:repeat(3,1fr);} .g4{grid-template-columns:repeat(4,1fr);}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:17px; transition:transform .15s,border-color .15s; position:relative;}
+  .card.clickable{cursor:pointer;}
+  .card.clickable:hover{transform:translateY(-3px); border-color:var(--blue);}
+  .card h3{margin-bottom:6px;}
+  .card p{font-size:.83rem; color:var(--ink-dim); line-height:1.5;}
+  .card .reveal{display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); font-size:.83rem; line-height:1.5;}
+  .card.open .reveal{display:block;}
+  .card.open{border-color:var(--blue); background:var(--card2);}
+  .tag{display:inline-block; font-size:.66rem; padding:2px 8px; border-radius:20px; background:var(--bg); color:var(--blue); border:1px solid var(--border); margin-bottom:8px;}
+  .btn{background:linear-gradient(90deg,var(--blue),var(--teal)); color:#06283e; border:none; padding:9px 18px; border-radius:10px; font-size:.85rem; font-weight:700; cursor:pointer;}
+  .btn:hover{filter:brightness(1.1);}
+  .btn.ghost{background:var(--card); color:var(--ink-dim); border:1px solid var(--border); font-weight:500;}
+  .btn.ghost:hover{color:var(--ink);}
+  .btn.small{padding:6px 12px; font-size:.76rem;}
+  .btn.warnbtn{background:linear-gradient(90deg,var(--rose),var(--amber)); color:#3a0d12;}
+  .toolrow{display:flex; gap:10px; margin-top:14px; align-items:center; flex-wrap:wrap;}
+  /* TITLE */
+  #s0{text-align:center; padding-top:7vh;}
+  #s0 .big{font-size:3rem; font-weight:800; line-height:1.15; background:linear-gradient(90deg,var(--blue),var(--teal),var(--violet)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .chain{display:flex; justify-content:center; align-items:center; gap:8px; flex-wrap:wrap;}
+  #s0 .chain{margin:42px auto 0;}
+  .chain-node{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:11px 16px; font-size:.85rem;}
+  .chain-arrow{color:var(--blue); font-size:1.2rem;}
+  /* MENTI */
+  .menti{background:var(--card); border:1px dashed var(--teal); border-radius:var(--radius); padding:14px; margin:18px 0;}
+  .menti .mhead{display:flex; align-items:center; gap:8px; font-size:.82rem; color:var(--teal); margin-bottom:8px;}
+  .menti .mhead .cfg{margin-left:auto; cursor:pointer; background:none; border:none; color:var(--ink-faint); font-size:.74rem;}
+  .menti .mhead .cfg:hover{color:var(--ink);}
+  .menti iframe{width:100%; height:430px; border:0; border-radius:10px; background:#fff;}
+  .menti .setup{display:flex; gap:8px;}
+  .menti input{flex:1; background:var(--bg); border:1px solid var(--border); color:var(--ink); padding:9px 12px; border-radius:8px; font-size:.8rem;}
+  .menti .help{font-size:.72rem; color:var(--ink-faint); margin-top:8px; line-height:1.5;}
+  /* HASH DEMO */
+  .demo{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px;}
+  .demo textarea, .demo .din{width:100%; background:var(--bg); border:1px solid var(--border); color:var(--ink); border-radius:10px; padding:11px 13px; font-size:.92rem; font-family:inherit; resize:vertical;}
+  .hashout{margin-top:14px; font-family:'SF Mono',Menlo,Consolas,monospace; font-size:1.15rem; letter-spacing:.04em; color:var(--teal); background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:14px; word-break:break-all; transition:color .15s;}
+  .hashout.flash{color:var(--amber);}
+  /* BLOCKCHAIN BLOCKS */
+  #chainWrap{display:flex; gap:8px; overflow-x:auto; padding:6px 2px 12px;}
+  .block{min-width:190px; background:var(--card); border:2px solid var(--green-dim); border-radius:12px; padding:12px; font-size:.76rem;}
+  .block.bad{border-color:var(--rose); box-shadow:0 0 16px rgba(251,113,133,.25);}
+  .block .bh{font-weight:700; font-size:.8rem; margin-bottom:8px; color:var(--ink);}
+  .block label{display:block; font-size:.64rem; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.08em; margin:7px 0 3px;}
+  .block input{width:100%; background:var(--bg); border:1px solid var(--border); color:var(--ink); border-radius:7px; padding:6px 8px; font-size:.74rem; font-family:inherit;}
+  .block .mono{font-family:'SF Mono',Menlo,Consolas,monospace; font-size:.7rem; color:var(--ink-dim); word-break:break-all;}
+  .block .prev{color:var(--violet);} .block .self{color:var(--teal);}
+  .block.bad .self, .block.bad .prev{color:var(--rose);}
+  .arrowh{display:flex; align-items:center; color:var(--blue); font-size:1.3rem;}
+  /* NETWORK / CONSENSUS */
+  .net{display:flex; justify-content:center; gap:22px; flex-wrap:wrap; margin:16px 0;}
+  .node{width:96px; text-align:center;}
+  .node .face{width:64px;height:64px;border-radius:50%;margin:0 auto;background:var(--card);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.7rem;transition:all .25s;}
+  .node.ok .face{border-color:var(--green); box-shadow:0 0 16px rgba(52,211,153,.3);}
+  .node.reject .face{border-color:var(--rose); box-shadow:0 0 16px rgba(251,113,133,.3);}
+  .node p{font-size:.7rem; color:var(--ink-faint); margin-top:6px;}
+  .node .ledger{font-size:.6rem; font-family:monospace; color:var(--ink-dim); margin-top:3px; min-height:1.2em;}
+  #consMsg{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; min-height:60px; font-size:.9rem; line-height:1.55;}
+  #consMsg b{color:var(--blue);}
+  /* DECISION TREE */
+  #treeBox{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:22px; text-align:center; min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;}
+  #treeBox .q{font-size:1.15rem; line-height:1.4; max-width:640px;}
+  #treeBox .verdict{font-size:1.25rem; font-weight:700; line-height:1.4; max-width:680px;}
+  #treeBox .verdict.yes{color:var(--green);} #treeBox .verdict.no{color:var(--amber);}
+  #treeBox .path{font-size:.72rem; color:var(--ink-faint);}
+  /* TABS */
+  .tabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;}
+  .tab{background:var(--card); border:1px solid var(--border); color:var(--ink-dim); padding:7px 13px; border-radius:9px; font-size:.8rem; cursor:pointer;}
+  .tab.active{background:var(--card2); color:var(--ink); border-color:var(--blue);}
+  .pane{display:none;} .pane.active{display:block;}
+  /* STAT NUMBERS */
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:8px 0 4px;}
+  .stat{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px; text-align:center;}
+  .stat .n{font-size:1.7rem; font-weight:800; color:var(--amber); font-variant-numeric:tabular-nums;}
+  .stat .l{font-size:.74rem; color:var(--ink-dim); margin-top:4px; line-height:1.4;}
+  /* SIM TIMER */
+  .simtimer{background:linear-gradient(160deg,var(--card2),var(--card)); border:1px solid var(--blue); border-radius:var(--radius); padding:18px; text-align:center; margin:16px 0;}
+  .simtimer .big{font-size:3rem; font-weight:800; font-variant-numeric:tabular-nums; color:var(--ink);}
+  .simtimer .phase{font-size:1rem; color:var(--blue); margin:4px 0 2px; font-weight:600;}
+  .simtimer .next{font-size:.76rem; color:var(--ink-faint);}
+  .roles{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin:14px 0;}
+  .role{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px;}
+  .role h4{font-size:.9rem; margin-bottom:5px;} .role p{font-size:.8rem;}
+  /* COACH */
+  #coach{position:fixed; top:0; right:0; width:360px; height:100vh; background:var(--bg2); border-left:1px solid var(--border); transform:translateX(100%); transition:transform .3s; z-index:50; display:flex; flex-direction:column;}
+  #coach.open{transform:none;}
+  #coach .chead{padding:16px; border-bottom:1px solid var(--border); font-size:.9rem; color:var(--gold); display:flex; align-items:center;}
+  #coach .chead button{margin-left:auto; background:none; border:none; color:var(--ink-faint); cursor:pointer; font-size:1.1rem;}
+  #coachBody{flex:1; overflow-y:auto; padding:14px;}
+  .cue{background:var(--card); border:1px solid var(--border); border-left:3px solid var(--gold); border-radius:0 12px 12px 0; padding:11px 14px; margin-bottom:11px; animation:cuein .3s;}
+  .cue .ct{font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:var(--gold); margin-bottom:5px;}
+  .cue .cb{font-size:.85rem; line-height:1.55; color:var(--ink-dim);} .cue .cb b{color:var(--ink);}
+  @keyframes cuein{from{opacity:0; transform:translateX(10px);} to{opacity:1; transform:none;}}
+  .imgslot{border:1px solid var(--border); border-radius:12px; background:var(--bg); min-height:150px; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; color:var(--ink-faint); font-size:.85rem;}
+  .imgslot img{width:100%; display:block;}
+  @media(max-width:900px){ #sidebar{position:absolute; z-index:40; height:100%;} .g3,.g4{grid-template-columns:1fr 1fr;} }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <header>
+      <h1>⛓️ Blockchain — spiegata sul serio</h1>
+      <p>Master in Carbon Farming · lezione-laboratorio · 2h30</p>
+    </header>
+    <div id="nav"></div>
+    <div id="clock">
+      <span>⏱ Lezione: <b id="lessonClock">00:00</b></span>
+      <button id="clockBtn">avvia</button>
+    </div>
+  </aside>
+  <main id="main">
+    <div id="topbar">
+      <button class="iconbtn" id="menuBtn">☰</button>
+      <button class="iconbtn" id="prevBtn">← Indietro</button>
+      <button class="iconbtn" id="nextBtn">Avanti →</button>
+      <div id="progress"><div id="progFill"></div></div>
+      <span id="where"></span>
+      <button class="iconbtn" id="coachBtn">💬 Copione</button>
+    </div>
+    <div id="stage">
+
+      <!-- 0 · TITOLO -->
+      <section class="screen active" id="s0">
+        <p class="kicker">Master in Carbon Farming</p>
+        <div class="big">La blockchain,<br>spiegata sul serio</div>
+        <p class="sub" style="margin:18px auto 0; text-align:center;">Non una moneta: una <b>macchina per la fiducia</b>. Oggi capiamo come funziona davvero, a cosa serve (e a cosa no) e cosa c'entra col carbonio.</p>
+        <div class="chain">
+          <span class="chain-node">Il registro</span><span class="chain-arrow">→</span>
+          <span class="chain-node">La catena</span><span class="chain-arrow">→</span>
+          <span class="chain-node">Il consenso</span><span class="chain-arrow">→</span>
+          <span class="chain-node">Gli usi</span><span class="chain-arrow">→</span>
+          <span class="chain-node">Il carbonio</span>
+        </div>
+        <p class="hint" style="text-align:center; margin-top:34px;">Naviga con le frecce ← → della tastiera o dal menu a sinistra. Tasto <b>C</b> per il copione docente. Tutto funziona offline.</p>
+      </section>
+
+      <!-- 1 · APERTURA + MENTIMETER -->
+      <section class="screen" id="s1">
+        <p class="kicker">Parte 1 · Perché · 5'</p>
+        <h2>Prima parola che vi viene in mente</h2>
+        <p class="sub">Votate dal telefono: cosa vi evoca la parola «blockchain»? Nessuna risposta è sbagliata — anzi, i luoghi comuni sono il nostro punto di partenza.</p>
+        <div class="menti" data-key="mOpen" data-title="Word cloud d'apertura"></div>
+        <div class="grid g4">
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Di solito esce…</span><h3>💰 Bitcoin, crypto, soldi</h3><p>La punta dell'iceberg.</p><div class="reveal">Bitcoin è <b>la prima applicazione</b> della blockchain, non la blockchain. Confondere le due cose è come confondere «email» con «internet».</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Spesso esce…</span><h3>⚠️ Truffe, bolle, azzardo</h3><p>Non a torto.</p><div class="reveal">Ci sono state truffe vere. Ma la tecnologia sotto è neutra: oggi la usano banche centrali, PA e filiere alimentari. Impareremo a distinguere.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Quasi mai esce…</span><h3>📒 Un registro condiviso</h3><p>Ed è la cosa giusta.</p><div class="reveal">La blockchain è un <b>libro mastro</b> di cui nessuno è padrone e che nessuno può falsificare di nascosto. Tutto il resto discende da qui.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Il nostro filo</span><h3>🤝 Una macchina per la fiducia</h3><p>Tenetelo a mente.</p><div class="reveal">A fine lezione questa frase avrà senso: <b>la blockchain non crea fiducia dal nulla, la trasporta e la protegge.</b></div></div>
+        </div>
+        <div class="takeaway"><b>Ponte:</b> mettiamo da parte i pregiudizi e partiamo dalla domanda che ha fatto nascere tutto — un problema vecchio come il commercio.</div>
+      </section>
+
+      <!-- 2 · IL PROBLEMA: CHI TIENE IL REGISTRO -->
+      <section class="screen" id="s2">
+        <p class="kicker">Parte 1 · Perché · 10'</p>
+        <h2>Il problema: chi tiene il registro?</h2>
+        <p class="sub">Ogni scambio ha bisogno di un registro di cui fidarsi — e di qualcuno che lo custodisca. Ma cosa succede se di quel qualcuno non ci fidiamo?</p>
+        <div class="grid g3">
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Da sempre</span><h3>Serve un libro mastro</h3><p>Dai Sumeri a oggi.</p><div class="reveal">Chi possiede cosa, chi deve a chi: da 5.000 anni segniamo tutto su un registro. Il commercio è, in fondo, tenere i conti.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">La soluzione classica</span><h3>Un custode fidato</h3><p>Banca, notaio, piattaforma.</p><div class="reveal">Ci fidiamo di un <b>terzo al centro</b> che tiene il registro ufficiale. Funziona… finché ci si fida di lui, finché non sbaglia, non censura, non fallisce.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag warn">Il buco nero</span><h3 class="warn">La doppia spesa</h3><p>Il problema dei soldi digitali.</p><div class="reveal">Un file si copia. Se il denaro è un file, cosa impedisce di <b>spendere lo stesso euro due volte</b>? Per secoli la risposta è stata: «ci pensa la banca». La blockchain propone un'altra risposta.</div></div>
+        </div>
+        <p style="margin-top:18px;">Nel 2008, un documento firmato «<b>Satoshi Nakamoto</b>» propone l'idea rivoluzionaria: un registro <b>senza custode centrale</b>, tenuto in copia identica da migliaia di computer, in cui nessuno può barare perché tutti controllano tutti.</p>
+        <div class="takeaway"><b>La domanda della lezione:</b> come si costruisce «un registro di cui <i>nessuno</i> è padrone, ma di cui <i>tutti</i> si fidano»? Servono quattro ingredienti. Vediamoli, uno alla volta.</div>
+      </section>
+
+      <!-- 3 · IL QUADERNO CONDIVISO -->
+      <section class="screen" id="s3">
+        <p class="kicker">Parte 2 · Come funziona · 5'</p>
+        <h2>Ingrediente 1 — il quaderno condiviso</h2>
+        <p class="sub">Dimentichiamo la parola «blockchain» e immaginiamo un quaderno. È la metafora che regge tutta la lezione.</p>
+        <div class="grid g2">
+          <div class="card"><h3>🏦 Il registro tradizionale</h3><p style="margin-top:8px;">Esiste <b>una sola copia</b>, custodita dalla banca. Tu vedi solo il tuo estratto conto. Se la banca cambia una riga, non puoi accorgertene. Devi fidarti.</p></div>
+          <div class="card" style="border-color:var(--blue)"><h3>📒 Il registro distribuito</h3><p style="margin-top:8px;">Ci sono <b>mille copie identiche</b> del quaderno, una per ogni partecipante. Ogni nuova riga viene scritta su tutte insieme. Nessuno possiede «l'originale»: l'originale sono tutti.</p></div>
+        </div>
+        <p style="margin-top:16px;">Questo cambia una cosa enorme: per falsificare un dato non basta corrompere un custode, bisognerebbe riscrivere <b>la maggioranza di tutte le copie nello stesso istante</b>. In pratica, impossibile. Ma perché sia davvero impossibile servono gli altri tre ingredienti.</p>
+        <div class="takeaway"><b>Take-away:</b> «distribuito» significa <b>tante copie, nessun capo</b>. La fiducia non sta più in un custode, ma nel fatto che si controllano a vicenda.</div>
+      </section>
+
+      <!-- 4 · DEMO HASHING -->
+      <section class="screen" id="s4">
+        <p class="kicker">Parte 2 · Come funziona · 8'</p>
+        <h2>Ingrediente 2 — l'impronta digitale (hash)</h2>
+        <p class="sub">Prima di incatenare i dati serve un modo per «sigillarli». Provate voi: scrivete qualcosa e guardate l'impronta che ne esce.</p>
+        <div class="demo">
+          <label style="font-size:.74rem; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.08em;">Scrivi un testo qualsiasi</label>
+          <textarea id="hashIn" rows="2" style="margin-top:6px;">Valdichiara sequestra 200 tonnellate di CO2 nel 2026</textarea>
+          <div style="font-size:.74rem; color:var(--ink-faint); margin-top:12px;">↓ La sua impronta (hash)</div>
+          <div class="hashout" id="hashOut">—</div>
+          <p class="hint">Cambia anche <b>una sola lettera o uno spazio</b> e guarda l'impronta: cambia completamente e in modo imprevedibile. Ma lo stesso testo dà <b>sempre</b> la stessa impronta.</p>
+        </div>
+        <div class="grid g3" style="margin-top:14px;">
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Proprietà 1</span><h3>Sempre uguale</h3><p>Stesso testo → stessa impronta.</p><div class="reveal">Chiunque, ovunque, può ricalcolarla e verificare che il dato non sia stato toccato.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Proprietà 2</span><h3>Effetto valanga</h3><p>Piccola modifica → impronta stravolta.</p><div class="reveal">Non c'è modo di «ritoccare» un dato mantenendo la stessa impronta. Ogni manomissione salta all'occhio.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Proprietà 3</span><h3>A senso unico</h3><p>Dall'impronta non si risale al testo.</p><div class="reveal">È come un sigillo di ceralacca: certifica il contenuto senza rivelarlo. (Qui usiamo una versione semplificata per la demo; le blockchain vere usano SHA-256.)</div></div>
+        </div>
+        <div class="takeaway"><b>Take-away:</b> l'hash è <b>l'impronta digitale di un dato</b>. È il mattone che, tra un attimo, ci permette di incatenare i blocchi in modo a prova di manomissione.</div>
+      </section>
+
+      <!-- 5 · DEMO CATENA + MANOMISSIONE -->
+      <section class="screen" id="s5">
+        <p class="kicker">Parte 2 · Come funziona · 8'</p>
+        <h2>Ingrediente 3 — la catena (e perché non si riscrive)</h2>
+        <p class="sub">Ogni blocco contiene l'impronta del blocco precedente. Così i blocchi si «tengono per mano». Provate a barare: modificate il contenuto di un blocco.</p>
+        <div id="chainWrap"></div>
+        <div class="toolrow">
+          <button class="btn warnbtn small" onclick="alert('Modifica il testo dentro un blocco (campo Dati) e guarda cosa succede ai blocchi successivi.')">🖊️ Come si bara?</button>
+          <button class="btn small" id="reseal">🔨 Ri-sigilla la catena</button>
+          <span class="hint" style="margin:0;">Verde = valido · Rosso = catena spezzata</span>
+        </div>
+        <div class="takeaway"><b>Take-away:</b> cambiare un blocco «scollega» tutti quelli dopo, e <b>tutti se ne accorgono</b>. Per riscrivere la storia dovresti rifare l'intera catena su <b>tutte</b> le copie: ecco l'<b>immutabilità</b>.</div>
+      </section>
+
+      <!-- 6 · CONSENSO -->
+      <section class="screen" id="s6">
+        <p class="kicker">Parte 2 · Come funziona · 7'</p>
+        <h2>Ingrediente 4 — il consenso (mettersi d'accordo senza capo)</h2>
+        <p class="sub">Mille copie del quaderno: chi decide qual è la versione «vera»? E come si blocca la doppia spesa? Guardiamolo in azione.</p>
+        <div id="consMsg">Marco ha <b>1 solo gettone digitale</b>. Prova a spenderlo <b>contemporaneamente</b> con Anna e con Luca. Premi «Trasmetti» e osserva la rete.</div>
+        <div class="net" id="consNet"></div>
+        <div class="toolrow">
+          <button class="btn small" id="consStep">▶ Trasmetti / passo successivo</button>
+          <button class="btn ghost small" id="consReset">↺ Ricomincia</button>
+        </div>
+        <div class="grid g2" style="margin-top:16px;">
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Proof of Work</span><h3>⛏️ Chi lavora, decide</h3><p>Il metodo di Bitcoin.</p><div class="reveal">Per aggiungere un blocco bisogna risolvere un problema che costa calcolo (energia). Barare costerebbe più che comportarsi bene. Sicuro, ma <b>energivoro</b>.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Proof of Stake</span><h3>🎯 Chi ha in gioco, decide</h3><p>Il metodo di Ethereum dal 2022.</p><div class="reveal">Chi convalida mette in garanzia un deposito: se bara, lo perde. Nel 2022 il passaggio a questo metodo ha ridotto i consumi di Ethereum di circa <b>99,95%</b>. Il luogo comune «la blockchain inquina» va molto ridimensionato.</div></div>
+        </div>
+        <div class="takeaway"><b>Take-away:</b> il consenso è la regola con cui la rete sceglie <b>una sola verità condivisa</b>. La prima transazione valida vince; la seconda (la doppia spesa) viene <b>rifiutata da tutti</b>.</div>
+      </section>
+
+      <!-- 7 · CHIAVI E WALLET -->
+      <section class="screen" id="s7">
+        <p class="kicker">Parte 2 · Come funziona · 5'</p>
+        <h2>Chiavi, wallet e firma — cosa vuol dire «possedere»</h2>
+        <p class="sub">Sulla blockchain non c'è un impiegato che verifica la tua identità. Al suo posto, un po' di matematica: due chiavi.</p>
+        <div class="grid g2">
+          <div class="card"><h3>📬 Chiave pubblica</h3><p style="margin-top:8px;">È come l'<b>indirizzo della tua cassetta delle lettere</b>: la dai a tutti, serve a ricevere. È il tuo «conto» visibile sulla rete.</p></div>
+          <div class="card" style="border-color:var(--blue)"><h3>🔑 Chiave privata</h3><p style="margin-top:8px;">È la <b>chiave che apre la cassetta e firma</b>: va tenuta segreta. Chi la possiede controlla i fondi. Non c'è «password dimenticata».</p></div>
+        </div>
+        <p style="margin-top:16px;">«Possedere» un token significa <b>possedere la chiave privata</b> che lo controlla. Da qui il detto: <b>«not your keys, not your coins»</b> — se le tue monete stanno su un exchange, la chiave ce l'ha lui, non tu. La firma digitale prova che sei stato tu ad autorizzare, senza rivelare la chiave.</p>
+        <div class="takeaway"><b>Take-away:</b> la blockchain sposta la fiducia da «mi fido dell'impiegato» a «controllo io la mia chiave». Grande potere, grande responsabilità.</div>
+      </section>
+
+      <!-- 8 · TOKEN, SMART CONTRACT, PUBBLICA/PRIVATA + QUIZ -->
+      <section class="screen" id="s8">
+        <p class="kicker">Parte 2 · Come funziona · 7'</p>
+        <h2>Token, smart contract e i tipi di blockchain</h2>
+        <p class="sub">Gli ultimi due mattoni concettuali, poi un mini-quiz per fissare tutto.</p>
+        <div class="grid g3">
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Token</span><h3>🎟️ Un'unità digitale unica</h3><p>Non duplicabile.</p><div class="reveal">Un token è una «gettone» registrato sulla catena: può rappresentare una moneta, un credito di carbonio, un titolo, un certificato. Unico e tracciabile per definizione.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Smart contract</span><h3>🤖 Un distributore automatico</h3><p>Regole che si eseguono da sole.</p><div class="reveal">«Se arriva la verifica X, paga automaticamente Y». Un programma che vive sulla catena ed esegue le condizioni senza bisogno di un intermediario che le faccia rispettare.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Pubblica vs privata</span><h3>🌐 Aperta o a inviti</h3><p>Non sono tutte come Bitcoin.</p><div class="reveal"><b>Pubblica</b>: chiunque partecipa e legge (Bitcoin, Ethereum). <b>Permessa/privata</b>: solo attori autorizzati — usata da imprese, consorzi e PA per le filiere. Scelta chiave per il mondo reale.</div></div>
+        </div>
+        <div class="menti" data-key="mQuiz" data-title="Quiz di consolidamento"></div>
+        <div class="takeaway"><b>Take-away:</b> quattro ingredienti (registro distribuito + hash + catena + consenso) e due strumenti (token + smart contract). Con questo, ora possiamo chiederci: <b>a cosa serve davvero?</b></div>
+      </section>
+
+      <!-- 9 · CASI D'USO PANORAMICA -->
+      <section class="screen" id="s9">
+        <p class="kicker">Parte 3 · A cosa serve · 8'</p>
+        <h2>A cosa serve davvero — oltre le monete</h2>
+        <p class="sub">Ovunque serva un registro condiviso e a prova di manomissione tra parti che non si fidano ciecamente. Clicca ogni ambito.</p>
+        <div class="grid g3">
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Finanza</span><h3>💳 Pagamenti e stablecoin</h3><p>Trasferire valore senza banca al centro.</p><div class="reveal">Le <b>stablecoin</b> (monete agganciate all'euro/dollaro) sono già usate per pagamenti internazionali istantanei. È il caso d'uso più maturo — e il più regolato (vedi MiCA).</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Beni reali</span><h3>🏠 Tokenizzazione (RWA)</h3><p>Immobili, titoli, opere divisi in quote digitali.</p><div class="reveal">Un immobile o un'obbligazione diventa un token scambiabile in frazioni. «Real World Assets»: una delle frontiere più concrete del 2026.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Certificati</span><h3>🎫 NFT oltre l'hype</h3><p>Non solo scimmiette: certificati e biglietti.</p><div class="reveal">Un NFT è solo un token <b>unico</b>. Utile per titoli di studio verificabili, biglietti non falsificabili, certificati di autenticità. L'arte è stata solo il primo (rumoroso) esperimento.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Identità</span><h3>🪪 Identità digitale</h3><p>Provare chi sei senza consegnare tutto.</p><div class="reveal">Credenziali verificabili: dimostri di essere maggiorenne senza rivelare la data di nascita. L'UE ci lavora col portafoglio d'identità digitale.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Filiere</span><h3>📦 Tracciabilità</h3><p>Dal campo allo scaffale.</p><div class="reveal">Il caso più vicino a voi: seguire un prodotto lungo tutta la filiera, con ogni passaggio registrato e non modificabile. Lo vediamo tra poco sull'agroalimentare italiano.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Settore pubblico</span><h3>🏛️ Registri pubblici</h3><p>Atti, voti, sussidi tracciabili.</p><div class="reveal">Registri di proprietà, tracciamento di fondi pubblici, certificazioni: dove serve trasparenza e nessuno deve poter cancellare la storia.</div></div>
+        </div>
+        <div class="takeaway"><b>Take-away:</b> il filo comune non è «i soldi», è <b>la fiducia distribuita</b>: registrare fatti in modo che nessuno possa negarli o riscriverli.</div>
+      </section>
+
+      <!-- 10 · MiCA -->
+      <section class="screen" id="s10">
+        <p class="kicker">Parte 3 · A cosa serve · 5'</p>
+        <h2>Le regole del gioco in Europa — MiCA</h2>
+        <p class="sub">Fine del Far West: dal 2026 l'UE ha un regolamento unico sui cripto-asset. Contesto utile per capire dove sta andando il settore.</p>
+        <div class="stats">
+          <div class="stat"><div class="n">2026</div><div class="l">MiCA pienamente in vigore (dal 1° luglio)</div></div>
+          <div class="stat"><div class="n">~1 su 5</div><div class="l">operatori che hanno ottenuto l'autorizzazione</div></div>
+          <div class="stat"><div class="n">8</div><div class="l">stablecoin in euro conformi (metà 2026)</div></div>
+        </div>
+        <div class="grid g3" style="margin-top:14px;">
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Cosa fa</span><h3>Regole uniche UE</h3><p>Un solo quadro per 27 Paesi.</p><div class="reveal">Chi offre servizi cripto in UE deve avere una licenza; le stablecoin hanno requisiti stringenti di riserva e vigilanza. Passaporto unico europeo.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">L'effetto</span><h3>Selezione naturale</h3><p>Molti operatori fuori.</p><div class="reveal">Su oltre 1.200 operatori registrati a livello nazionale, solo ~210-240 hanno ottenuto l'autorizzazione MiCA. Alcune stablecoin (es. USDT) sono state tolte dalle piattaforme UE.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Perché conta</span><h3>Fiducia istituzionale</h3><p>Il settore matura.</p><div class="reveal">Regole chiare = imprese serie e PA possono entrare. È il segnale che la tecnologia esce dalla nicchia speculativa.</div></div>
+        </div>
+        <div class="takeaway"><b>Take-away:</b> non è più «terra di nessuno». Per usi seri — come i crediti di carbonio — un quadro regolatorio è una <b>precondizione</b>, non un dettaglio.</div>
+      </section>
+
+      <!-- 11 · FOCUS ITALIA AGROALIMENTARE -->
+      <section class="screen" id="s11">
+        <p class="kicker">Parte 3 · A cosa serve · 6'</p>
+        <h2>Focus Italia — la tracciabilità agroalimentare</h2>
+        <p class="sub">Il caso d'uso più vicino al vostro mondo, e uno dei più concreti in Italia: olio e vino dal campo allo scaffale.</p>
+        <div class="grid g3">
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Il problema</span><h3 class="warn">La frode alimentare</h3><p>L'olio extravergine è un bersaglio.</p><div class="reveal">Si stima che <b>fino all'80% dell'EVOO</b> sul mercato sia esposto a frodi o contraffazioni. Il «made in Italy» vale solo se è dimostrabile.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">La soluzione</span><h3>📱 Un QR che racconta tutto</h3><p>Ogni passaggio registrato on-chain.</p><div class="reveal">Raccolta, molitura, imbottigliamento, trasporto: ogni tappa scritta in un registro immutabile. Il consumatore inquadra il QR e vede la storia vera della bottiglia.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Casi reali</span><h3>🇮🇹 Già in campo</h3><p>Non è teoria.</p><div class="reveal">Piattaforme italiane (es. Agri-Food Track di EZ Lab), progetti di ricerca sull'olio (BRUSCHETTA), cantine che certificano l'annata on-chain. Spesso con QR + sensori IoT + il sistema SIAN.</div></div>
+        </div>
+        <p style="margin-top:16px;">Notate il legame con la lezione precedente: la blockchain <b>certifica</b>, ma i dati veri li producono <b>sensori e persone</b> in campo. La catena è forte quanto il suo anello più debole — teniamolo a mente, torna tra poco.</p>
+        <div class="takeaway"><b>Take-away:</b> nell'agroalimentare la blockchain vende <b>fiducia dimostrabile</b>: trasforma un'etichetta («bio», «DOP», «a km zero») da promessa a prova.</div>
+      </section>
+
+      <!-- 12 · SERVE DAVVERO? DECISION TREE -->
+      <section class="screen" id="s12">
+        <p class="kicker">Parte 3 · A cosa serve · 6'</p>
+        <h2>«Ma serve davvero una blockchain?»</h2>
+        <p class="sub">Il superpotere di questa lezione: saper rispondere quando qualcuno vi propone «mettiamolo sulla blockchain!». Rispondete alle domande.</p>
+        <div id="treeBox"></div>
+        <div class="toolrow" style="justify-content:center;">
+          <button class="btn ghost small" id="treeReset">↺ Rifai il test</button>
+        </div>
+        <div class="takeaway"><b>Take-away:</b> spesso la risposta onesta è «<b>ti basta un database</b>». La blockchain conviene solo con <b>più attori che non si fidano + bisogno di immutabilità + nessuna autorità unica accettata</b>. Il resto è <b>blockchain-washing</b>.</div>
+      </section>
+
+      <!-- 13 · CREDITI ON-CHAIN: COSA RISOLVE -->
+      <section class="screen" id="s13">
+        <p class="kicker">Parte 4 · Sostenibilità e carbonio · 7'</p>
+        <h2>Il ponte: i crediti di carbonio on-chain</h2>
+        <p class="sub">Ora colleghiamo tutto al vostro mestiere. Il mercato volontario del carbonio ha un problema di fiducia — e la blockchain prova a curarlo.</p>
+        <div class="grid g3">
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Problema</span><h3 class="warn">Crediti «fantasma»</h3><p>Doppio conteggio e opacità.</p><div class="reveal">Lo stesso credito venduto due volte, ritiri non tracciabili, inchieste sui crediti forestali: quando la fiducia crolla, i prezzi crollano e gli agricoltori seri non vengono pagati.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Cosa risolve</span><h3>🎟️ Tokenizzazione + retirement pubblico</h3><p>Un credito, un token, una storia.</p><div class="reveal">Ogni credito diventa un token con identità unica e ritiro <b>verificabile da chiunque</b>: niente più doppio conteggio, tracciabilità fino al campo.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Il cerchio si chiude</span><h3>🤖 Smart contract + dMRV</h3><p>Pagamento automatico alla verifica.</p><div class="reveal"><b>Il sensore misura → l'AI stima → la blockchain certifica e paga.</b> Lo smart contract versa il denaro all'agricoltore appena la misura è verificata. Niente attese di 90 giorni.</div></div>
+        </div>
+        <div class="takeaway"><b>Take-away:</b> per il carbon farming la blockchain porta <b>tracciabilità e pagamento automatico</b>. Ma attenzione a cosa NON può fare — schermata dopo.</div>
+      </section>
+
+      <!-- 14 · STATO REALE 2026 -->
+      <section class="screen" id="s14">
+        <p class="kicker">Parte 4 · Sostenibilità e carbonio · 7'</p>
+        <h2>Stato reale 2026 — numeri, non hype</h2>
+        <p class="sub">Onestà intellettuale: la promessa è grande, la realtà è a metà strada. I dati aggiornati.</p>
+        <div class="stats">
+          <div class="stat"><div class="n">&gt;45 Mt</div><div class="l">CO₂e di crediti <b>ritirati on-chain</b> nel 2025 (record)</div></div>
+          <div class="stat"><div class="n">&lt; 8%</div><div class="l">quota sul mercato volontario totale (~600 Mt)</div></div>
+          <div class="stat"><div class="n">~0,02 $</div><div class="l">costo di un ritiro on-chain (rete Polygon/Celo)</div></div>
+        </div>
+        <div class="grid g2" style="margin-top:14px;">
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">La svolta 2025</span><h3>🤝 Toucan × Verra</h3><p>Da nemici a partner.</p><div class="reveal">Nel maggio 2022 Verra (il maggiore standard) <b>vietò</b> la tokenizzazione. Dopo due anni di negoziati, nel <b>2025</b> ha firmato con Toucan un quadro di «bridging» autorizzato: la pace che dà legittimità al settore.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Chi compra</span><h3>🏢 Grandi nomi</h3><p>Non solo cripto-appassionati.</p><div class="reveal">Microsoft, Shopify, Stripe integrano acquisto di crediti on-chain. I pool BCT/NCT di Toucan fanno da prezzo di riferimento, con oltre 25 milioni di crediti «bridgeati».</div></div>
+        </div>
+        <div class="takeaway"><b>Take-away:</b> è una <b>nicchia in crescita rapida ma ancora piccola</b>. Promettente, non risolutiva. Chi ve la vende come «la soluzione» sta esagerando.</div>
+      </section>
+
+      <!-- 15 · IL PROBLEMA DELL'ORACOLO -->
+      <section class="screen" id="s15">
+        <p class="kicker">Parte 4 · Sostenibilità e carbonio · 6'</p>
+        <h2>Il grande «ma»: il problema dell'oracolo</h2>
+        <p class="sub">Se dovete ricordare una sola cosa di oggi, è questa. Vale per il carbonio, per l'olio, per qualunque cosa messa su una blockchain.</p>
+        <div class="demo" style="border-color:var(--rose); text-align:center; padding:26px;">
+          <div style="font-size:1.15rem; line-height:1.6;">La blockchain garantisce l'integrità del dato <b style="color:var(--teal)">registrato</b>,<br>non la sua <b style="color:var(--rose)">verità</b>.</div>
+          <div style="margin-top:16px; font-size:1.4rem; color:var(--amber);">🗑️ dato sbagliato in ➜ 🔒 errore immutabile per sempre</div>
+        </div>
+        <div class="grid g3" style="margin-top:16px;">
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag warn">Oracolo</span><h3>Chi garantisce l'ingresso?</h3><p>Il punto debole.</p><div class="reveal">Se un sensore mente o qualcuno inserisce un dato falso, la blockchain lo <b>certifica lo stesso</b> — e lo rende immodificabile. «Garbage in, garbage forever».</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag warn">Blockchain-washing</span><h3>La parola-specchietto</h3><p>Usarla per vendere.</p><div class="reveal">Mettere «blockchain» sull'etichetta non rende un prodotto sostenibile né vero. Diffidate quando serve solo a fare marketing.</div></div>
+          <div class="card clickable" onclick="this.classList.toggle('open')"><span class="tag">Cosa serve davvero</span><h3>Buoni dati a terra</h3><p>La tecnologia non basta.</p><div class="reveal">Sensori affidabili, verificatori indipendenti, agronomia seria. La blockchain <b>trasporta</b> la fiducia generata dalla misura: per questo viene <b>per ultima</b> nella catena.</div></div>
+        </div>
+        <div class="takeaway"><b>Take-away:</b> la blockchain non crea fiducia dal nulla. È un <b>notaio</b> potentissimo, ma registra ciò che gli portate: <b>è l'agronomia che sequestra, non la catena di blocchi.</b></div>
+      </section>
+
+      <!-- 17 · SIMULAZIONE B -->
+      <section class="screen" id="s17">
+        <p class="kicker">Parte 5 · Simulazione · 45'</p>
+        <h2>🎲 Simulazione — «La filiera dell'olio (e il suo carbonio)»</h2>
+        <p class="sub">Quattro anelli della filiera dell'olio decidono cosa mettere davvero on-chain. Poi scoprono che lo stesso oliveto cattura CO₂ e devono trattare il carbonio: il problema dell'oracolo torna due volte.</p>
+        <div class="simtimer" id="timerB">
+          <div class="phase" id="timerBphase">Pronti a partire</div>
+          <div class="big" id="timerBclock">45:00</div>
+          <div class="next" id="timerBnext">Premi Avvia per far scorrere le fasi da sole</div>
+          <div class="toolrow" style="justify-content:center; margin-top:12px;">
+            <button class="btn small" data-tstart="B">▶ Avvia</button>
+            <button class="btn ghost small" data-tskip="B">Salta fase →</button>
+            <button class="btn ghost small" data-treset="B">↺ Reset</button>
+          </div>
+        </div>
+        <div class="roles">
+          <div class="role"><h4>🌱 Produttore</h4><p>Vuole raccontare la qualità e farsi pagare il giusto. Ma di chi sono i dati del campo?</p></div>
+          <div class="role"><h4>🏭 Trasformatore</h4><p>Frantoio/cantina o sviluppatore del progetto crediti: aggiunge lavorazione e vuole efficienza.</p></div>
+          <div class="role"><h4>🔍 Verificatore</h4><p>La sua firma dà valore. Pretende dati grezzi e pone LA domanda: «e se il dato in ingresso è falso?»</p></div>
+          <div class="role"><h4>🛒 Acquirente</h4><p>Vuole prova pubblica e verificabile contro le accuse di frode/greenwashing. Paga il premio solo se blindata.</p></div>
+        </div>
+        <div class="card" style="border-color:var(--blue)"><h3>👥 Setup ibrido — 10 in aula + 20 online</h3>
+          <div class="grid g2" style="margin-top:8px;">
+            <div><p style="font-size:.85rem;"><b>In aula (2 gruppi da 5):</b> 🌱 Produttore e 🔍 Verificatore. Schede su carta; al Produttore va anche il bigliettino segreto.</p></div>
+            <div><p style="font-size:.85rem;"><b>Online (2 breakout da 10):</b> 🏭 Trasformatore e 🛒 Acquirente. Scheda nel chat del breakout, un portavoce parla per il gruppo.</p></div>
+          </div>
+          <p class="hint" style="margin-top:8px;">Il portatile d'aula entra nella call (microfono + webcam sui due gruppi). Tu condividi lo schermo con questo timer e col foglio decisioni. Nelle plenarie parla <b>un portavoce per gruppo</b>; gli altri suggeriscono nel chat. Dettagli nel PDF «Guida IBRIDA».</p>
+        </div>
+        <div class="card"><h3>Le 5 decisioni (una per round)</h3>
+          <ul>
+            <li><b>1 · Cosa mettere on-chain</b> — solo il certificato finale o ogni passaggio? (8')</li>
+            <li><b>2 · Pubblica o permessa</b> — aperta a tutti o consorzio a inviti? (7')</li>
+            <li><b>3 · Chi valida l'ingresso</b> — il nodo del problema dell'oracolo. (10')</li>
+            <li><b>4 · 🌱 L'oliveto che cattura CO₂</b> — l'olio sequestra carbonio nel suolo: lo tokenizziamo insieme all'olio? e chi misura il carbonio <i>invisibile</i>? (12')</li>
+            <li><b>5 · Prezzo e firma</b> — premio dell'olio + ricavi del carbonio: chi paga cosa, e conviene? (8')</li>
+          </ul>
+        </div>
+        <p class="hint">Schede ruolo, regole e regia nei PDF «Simulazione B» e «Guida IBRIDA». Due colpi di scena: il dato d'origine falso (Round 3) e il carbonio invisibile del suolo (Round 4) — la blockchain certifica entrambi se nessuno controlla l'ingresso.</p>
+      </section>
+
+      <!-- 18 · DEBRIEF -->
+      <section class="screen" id="s18">
+        <p class="kicker">Parte 5 · Chiusura · 15'</p>
+        <h2>Debrief e take-away</h2>
+        <p class="sub">Usciamo dai ruoli e mettiamo a fuoco. Poi il vostro feedback per tarare le prossime volte.</p>
+        <div class="grid g2">
+          <div class="card"><h3>Le domande guida</h3>
+            <ul>
+              <li>Perché barare non conviene in una rete distribuita?</li>
+              <li>Cosa garantisce la blockchain — e cosa <b>no</b>?</li>
+              <li>Quando serve davvero, e quando basta un database?</li>
+              <li>Il problema dell'oracolo, vissuto da dentro: chi controlla il dato in ingresso?</li>
+            </ul>
+          </div>
+          <div class="card" style="border-color:var(--blue)"><h3>Il messaggio da portare a casa</h3>
+            <p style="margin-top:8px; font-size:1rem; line-height:1.6;">La blockchain è una <b>macchina per la fiducia</b>: registra fatti in modo che nessuno possa negarli o riscriverli. Ma <b>trasporta</b> la fiducia, non la crea dal nulla. Per il carbonio: <b>il sensore misura, l'AI stima, la blockchain certifica e paga — ma è il suolo che sequestra.</b></p>
+          </div>
+        </div>
+        <div class="menti" data-key="mFeedback" data-title="Feedback di fine lezione"></div>
+        <p class="hint">Ultimi 5': proietti il QR del Mentimeter di feedback, gli studenti rispondono, commenti in diretta cosa approfondire.</p>
+      </section>
+
+      <!--SCREENS_END--></div>
+  </main>
+</div>
+
+<aside id="coach">
+  <div class="chead">💬 Copione docente — <span id="coachTitle" style="margin-left:6px;color:var(--ink)"></span><button id="coachClose">✕</button></div>
+  <div id="coachBody"></div>
+</aside>
+
+<script>
+/* ============ SCREENS & NAV ============ */
+const SCREENS=[
+  {id:"s0",  part:"",                              label:"Titolo",                         t:""},
+  {id:"s1",  part:"Parte 1 · Perché (15')",   label:"Apertura + Mentimeter",          t:"5'"},
+  {id:"s2",  part:"",                              label:"Chi tiene il registro?",         t:"10'"},
+  {id:"s3",  part:"Parte 2 · Come funziona (40')", label:"Il quaderno condiviso",          t:"5'"},
+  {id:"s4",  part:"",                              label:"DEMO · L'impronta (hash)",       t:"8'"},
+  {id:"s5",  part:"",                              label:"DEMO · La catena + manomissione",t:"8'"},
+  {id:"s6",  part:"",                              label:"DEMO · Il consenso",             t:"7'"},
+  {id:"s7",  part:"",                              label:"Chiavi e wallet",                t:"5'"},
+  {id:"s8",  part:"",                              label:"Token, smart contract + quiz",   t:"7'"},
+  {id:"s9",  part:"Parte 3 · A cosa serve (25')",  label:"Panoramica casi d'uso",          t:"8'"},
+  {id:"s10", part:"",                              label:"Le regole UE — MiCA",            t:"5'"},
+  {id:"s11", part:"",                              label:"Focus Italia · agroalimentare",  t:"6'"},
+  {id:"s12", part:"",                              label:"DEMO · Serve davvero?",          t:"6'"},
+  {id:"s13", part:"Parte 4 · Sostenibilità (20')", label:"Crediti di carbonio on-chain", t:"7'"},
+  {id:"s14", part:"",                              label:"Stato reale 2026",               t:"7'"},
+  {id:"s15", part:"",                              label:"Il problema dell'oracolo",       t:"6'"},
+  {id:"s17", part:"Parte 5 · Simulazione (60')",   label:"🎲 Simulazione · Filiera olio + carbonio", t:"45'"},
+  {id:"s18", part:"",                              label:"Debrief + feedback",             t:"15'"},
+];
+let cur=0;
+const nav=document.getElementById("nav");
+SCREENS.forEach((s,i)=>{
+  if(s.part){const p=document.createElement("div"); p.className="nav-part"; p.textContent=s.part; nav.appendChild(p);}
+  const d=document.createElement("div"); d.className="nav-item"; d.dataset.i=i;
+  d.innerHTML=`<span>${s.label}</span>${s.t?`<span class="t">${s.t}</span>`:""}`;
+  d.onclick=()=>go(i); nav.appendChild(d);
+});
+function go(i){
+  if(i<0||i>=SCREENS.length) return;
+  document.querySelectorAll(".screen").forEach(el=>el.classList.remove("active"));
+  document.getElementById(SCREENS[i].id).classList.add("active");
+  document.querySelectorAll(".nav-item").forEach(el=>el.classList.toggle("active", +el.dataset.i===i));
+  cur=i;
+  document.getElementById("progFill").style.width=(i/(SCREENS.length-1)*100)+"%";
+  document.getElementById("where").textContent=`${i+1} / ${SCREENS.length}`;
+  document.getElementById("stage").scrollTop=0;
+  renderCoach();
+}
+document.getElementById("prevBtn").onclick=()=>go(cur-1);
+document.getElementById("nextBtn").onclick=()=>go(cur+1);
+document.getElementById("menuBtn").onclick=()=>document.getElementById("sidebar").classList.toggle("hidden");
+document.addEventListener("keydown",e=>{
+  const tag=(e.target.tagName||"").toLowerCase();
+  if(tag==="input"||tag==="textarea") return;
+  if(e.key==="ArrowRight") go(cur+1);
+  else if(e.key==="ArrowLeft") go(cur-1);
+  else if(e.key==="c"||e.key==="C") toggleCoach();
+});
+
+/* ============ LESSON CLOCK ============ */
+let clkSec=0, clkOn=false, clkInt=null;
+const clkEl=document.getElementById("lessonClock"), clkBtn=document.getElementById("clockBtn");
+function fmt(s){const m=Math.floor(s/60), r=s%60; return (m<10?"0":"")+m+":"+(r<10?"0":"")+r;}
+clkBtn.onclick=()=>{
+  clkOn=!clkOn; clkBtn.textContent=clkOn?"pausa":"riprendi";
+  if(clkOn){clkInt=setInterval(()=>{clkSec++; clkEl.textContent=fmt(clkSec);},1000);}
+  else clearInterval(clkInt);
+};
+
+/* ============ COACH PANEL ============ */
+const SCRIPTS={
+  s0:[["Apri così","«Oggi la blockchain smette di essere una parola magica. Niente slide morte: si vota, si gioca, si costruisce una catena a mano.»"],
+      ["Il patto","Prometti il filo: <b>registro → catena → consenso → usi → carbonio</b>. E la frase finale: 'una macchina per la fiducia'."]],
+  s1:[["Lancia il voto","Dai il codice/QR del Mentimeter. Lascia 60-90'' di voto, non commentare subito."],
+      ["Poi ribalta","Quasi tutti scrivono 'bitcoin/soldi/truffe'. Di': «tenete questa nuvola, a fine lezione la rifacciamo». È il pre/post."]],
+  s2:[["Il gancio","«Chi tiene il registro dei vostri soldi? E se non vi fidaste di lui?» Fai sentire il problema prima della soluzione."],
+      ["Doppia spesa","Spiega col file: 'un file si copia — allora perché non posso spendere due volte lo stesso euro digitale?' È la domanda madre."]],
+  s3:[["Metafora chiave","Insisti sul quaderno: una copia (banca) vs mille copie identiche (blockchain). Da qui discende tutto."]],
+  s4:[["Falla toccare","Fai cambiare UNA lettera nel testo e guardare l'impronta stravolgersi. Effetto 'oh'."],
+      ["Onestà","Di' che è una versione semplificata: le vere usano SHA-256. Il concetto però è identico."]],
+  s5:[["Il momento clou","Fai modificare il campo Dati di un blocco: i successivi diventano rossi. 'Avete appena provato a riscrivere la storia — e tutti se ne sono accorti.'"],
+      ["Chiudi","Ri-sigilla e spiega: per barare davvero dovresti rifare TUTTE le copie insieme. Impossibile."]],
+  s6:[["Guida i passi","Clicca 'Trasmetti' passo dopo passo, racconta cosa fa la rete. La doppia spesa viene bocciata: prima valida vince."],
+      ["Energia","Sfata il mito: PoS ha tagliato ~99,95% dei consumi di Ethereum nel 2022. Aggiorna chi pensa 'inquina come una nazione'."]],
+  s7:[["Semplifica","Cassetta delle lettere (pubblica) vs chiave (privata). 'Not your keys, not your coins': se stanno su un exchange, non sono davvero tue.'"]],
+  s8:[["Due parole","Token = gettone unico. Smart contract = distributore automatico di regole. Poi il quiz Mentimeter per fissare."],
+      ["Pubblica/privata","Sottolinea: per le filiere si usa quasi sempre la PERMESSA. Non tutte le blockchain sono aperte come Bitcoin."]],
+  s9:[["Ritmo","Apri 3-4 card, non tutte. Fai notare il filo: non 'soldi', ma 'fiducia distribuita'."]],
+  s10:[["Contesto","MiCA in vigore dal 2026: il settore esce dal Far West. Numeri forti: solo ~1 operatore su 5 autorizzato."]],
+  s11:[["Vicino a loro","Qui si accendono: olio e vino, frode fino all'80% EVOO. Il QR che 'racconta la bottiglia'. Cita casi italiani veri."],
+       ["Seminala","Anticipa: 'la blockchain certifica, ma i dati li fanno sensori e persone'. Torna nel problema dell'oracolo."]],
+  s12:[["Falla usare","Fai rispondere alla classe alle domande dell'albero. Il verdetto più frequente e onesto: 'ti basta un database'."],
+       ["Antidoto","Nomina il blockchain-washing: la parola messa lì per vendere."]],
+  s13:[["Il ponte","Collega alla lezione precedente: 'sensore → AI → blockchain'. Qui la blockchain è l'ultimo anello: certifica e paga."]],
+  s14:[["Onestà sui numeri","45 Mt on-chain nel 2025 ma <8% del mercato. Promettente, non risolutivo. La pace Toucan-Verra del 2025 dà legittimità."]],
+  s15:[["IL concetto","Se ricordano una cosa sola, è questa: 'integrità del dato registrato, non della sua verità'. Garbage in → garbage forever."],
+       ["Chiudi la parte","'È l'agronomia che sequestra, non la catena di blocchi.' Poi si va a giocare."]],
+  s17:[["Setup ibrido","Produttore e Verificatore in aula (carta), Trasformatore e Acquirente nei 2 breakout (scheda nel chat). Un portavoce per gruppo."],
+       ["Round 3 · colpo dell'oracolo","Passa in segreto al Produttore il bigliettino: olive da fuori regione dichiarate locali. Fai registrare on-chain, poi rivela: la blockchain ha reso immutabile la bugia."],
+       ["Round 4 · carbonio","«Lo stesso oliveto cattura CO₂: lo tokenizziamo?» Qui l'oracolo è ancora più duro — il carbonio del suolo è invisibile → serve dMRV (sensori+satellite+AI) + verificatore. È il ponte con l'altra lezione: sensore misura, AI stima, blockchain certifica e paga."],
+       ["Round 5 · firma","Conti a voce: premio olio + ricavi carbonio. Se non firmano tutti, salta tutto."]],
+  s18:[["Esci dai ruoli","Fai raccontare a ogni gruppo la decisione/scoperta più difficile. Poi le 4 domande guida."],
+       ["Chiudi + feedback","Frase finale sul carbonio. Poi proietta il QR del Mentimeter di feedback e commenta in diretta."]],
+};
+const coach=document.getElementById("coach");
+function renderCoach(){
+  document.getElementById("coachTitle").textContent=SCREENS[cur].label;
+  const items=SCRIPTS[SCREENS[cur].id]||[["—","Nessuna nota per questa schermata."]];
+  document.getElementById("coachBody").innerHTML=items.map(x=>`<div class="cue"><div class="ct">${x[0]}</div><div class="cb">${x[1]}</div></div>`).join("");
+}
+function toggleCoach(){coach.classList.toggle("open");}
+document.getElementById("coachBtn").onclick=toggleCoach;
+document.getElementById("coachClose").onclick=toggleCoach;
+
+/* ============ MENTIMETER SLOTS ============ */
+function mentiSrc(raw){
+  raw=raw.trim(); if(!raw) return "";
+  const m=raw.match(/src="([^"]+)"/i); if(m) return m[1];
+  if(raw.startsWith("http")) return raw;
+  return "";
+}
+function renderMenti(el){
+  const key=el.dataset.key, title=el.dataset.title||"Mentimeter";
+  const saved=localStorage.getItem("bcMenti_"+key)||"";
+  if(saved){
+    el.innerHTML=`<div class="mhead">📊 ${title} — risultati live<button class="cfg" data-cfg="${key}">⚙️ cambia</button></div><iframe src="${saved}" allowfullscreen></iframe>`;
+  }else{
+    el.innerHTML=`<div class="mhead">📊 ${title}<span style="margin-left:auto;font-size:.7rem;color:var(--ink-faint)">non impostato</span></div>
+      <div class="setup"><input placeholder="Incolla qui il codice embed &lt;iframe&gt; o il link Mentimeter" data-in="${key}"><button class="btn small" data-save="${key}">Salva</button></div>
+      <div class="help">Su Mentimeter: <b>Share → Embed</b>, copia il codice e incollalo qui. Resta salvato su questo computer. Poi proietti i risultati dentro la lezione.</div>`;
+  }
+}
+function initMenti(){document.querySelectorAll(".menti").forEach(renderMenti);}
+document.addEventListener("click",e=>{
+  const sv=e.target.dataset.save, cf=e.target.dataset.cfg;
+  if(sv){const inp=document.querySelector(`[data-in="${sv}"]`); const src=mentiSrc(inp.value); if(!src){alert("Incolla un codice embed <iframe> o un link valido.");return;} localStorage.setItem("bcMenti_"+sv,src); renderMenti(inp.closest(".menti"));}
+  if(cf){localStorage.removeItem("bcMenti_"+cf); renderMenti(e.target.closest(".menti"));}
+});
+
+/* ============ HASH (demo, non crittografica) ============ */
+function h32(s){let h=0x811c9dc5>>>0; for(let i=0;i<s.length;i++){h^=s.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0;} return ("00000000"+h.toString(16)).slice(-8);}
+function h64(s){return h32(s)+h32(s+"·salt·"+s.length);}
+function initHash(){
+  const inp=document.getElementById("hashIn"), out=document.getElementById("hashOut");
+  if(!inp) return;
+  const upd=()=>{out.textContent=h64(inp.value); out.classList.add("flash"); setTimeout(()=>out.classList.remove("flash"),150);};
+  inp.addEventListener("input",upd); upd();
+}
+
+/* ============ CHAIN + TAMPER ============ */
+let CHAIN=[];
+function bHash(i,data,prev){return h32(i+"|"+data+"|"+prev);}
+function sealChain(){let prev="00000000"; for(let i=0;i<CHAIN.length;i++){CHAIN[i].sealed=bHash(i,CHAIN[i].data,prev); prev=CHAIN[i].sealed;}}
+function initChain(){
+  CHAIN=[{data:"Anna → Luca : 5"},{data:"Luca → Sara : 2"},{data:"Sara → Anna : 1"},{data:"Anna → Bea : 3"}];
+  sealChain(); renderChain();
+  const r=document.getElementById("reseal"); if(r) r.onclick=()=>{sealChain(); renderChain();};
+}
+function renderChain(){
+  const wrap=document.getElementById("chainWrap"); if(!wrap) return; wrap.innerHTML="";
+  let prevLive="00000000";
+  CHAIN.forEach((b,i)=>{
+    const liveHash=bHash(i,b.data,prevLive);
+    const bad=liveHash!==b.sealed;
+    const el=document.createElement("div"); el.className="block"+(bad?" bad":"");
+    el.innerHTML=`<div class="bh">Blocco ${i} ${bad?"⛔":"✅"}</div>
+      <label>Hash precedente</label><div class="mono prev">${prevLive}</div>
+      <label>Dati</label><input value="${b.data.replace(/"/g,'&quot;')}" data-bi="${i}">
+      <label>Hash di questo blocco</label><div class="mono self">${liveHash}</div>`;
+    wrap.appendChild(el);
+    if(i<CHAIN.length-1){const a=document.createElement("div"); a.className="arrowh"; a.textContent="→"; wrap.appendChild(a);}
+    prevLive=liveHash;
+  });
+  wrap.querySelectorAll("input[data-bi]").forEach(inp=>{
+    inp.addEventListener("input",ev=>{CHAIN[+ev.target.dataset.bi].data=ev.target.value; renderChain(); const ni=wrap.querySelector(`input[data-bi="${ev.target.dataset.bi}"]`); if(ni){ni.focus(); ni.setSelectionRange(ni.value.length,ni.value.length);} });
+  });
+}
+
+/* ============ CONSENSUS / DOUBLE SPEND ============ */
+const CN=["Nodo 1","Nodo 2","Nodo 3","Nodo 4","Nodo 5"];
+let consStep=0;
+const CONS=[
+  {msg:"Marco ha <b>1 solo gettone</b>. Prova a spenderlo <b>due volte insieme</b>: con Anna e con Luca. Premi «Trasmetti».", face:"🙂", cls:"", led:"Marco: 1"},
+  {msg:"Arrivano <b>due transazioni in conflitto</b>: «Marco→Anna : 1» e «Marco→Luca : 1». Ogni nodo le riceve e le confronta col proprio registro.", face:"❓", cls:"", led:"2 in attesa…"},
+  {msg:"I nodi confrontano le copie: entrambe vorrebbero l'unico gettone di Marco. Vale la <b>prima vista</b> dalla rete: «Marco→Anna» è accettata, «Marco→Luca» è <b>respinta</b> da tutti.", face:"✅", cls:"ok", led:"Anna +1"},
+  {msg:"<b>Consenso raggiunto.</b> Il blocco con «Marco→Anna» entra nella catena. Marco ora ha saldo <b>0</b>: la <b>doppia spesa è bloccata</b> senza alcun capo, solo perché tutti tengono copia e confrontano.", face:"🔒", cls:"ok", led:"Marco: 0"},
+];
+function consRender(){
+  const st=CONS[consStep];
+  document.getElementById("consMsg").innerHTML=st.msg;
+  const net=document.getElementById("consNet"); if(!net) return; net.innerHTML="";
+  CN.forEach(n=>{const d=document.createElement("div"); d.className="node "+st.cls;
+    d.innerHTML=`<div class="face">${st.face}</div><p>${n}</p><div class="ledger">${st.led}</div>`; net.appendChild(d);});
+}
+function initCons(){
+  consStep=0; consRender();
+  const s=document.getElementById("consStep"), r=document.getElementById("consReset");
+  if(s) s.onclick=()=>{if(consStep<CONS.length-1){consStep++; consRender();}};
+  if(r) r.onclick=()=>{consStep=0; consRender();};
+}
+
+/* ============ DECISION TREE ============ */
+const TREE={
+  start:{q:"1 · Ci sono <b>più soggetti che NON si fidano</b> ciecamente l'uno dell'altro?", yes:"q2", no:{v:"Ti basta un database.", d:"Con un solo attore (o se vi fidate tutti), un normale database è più semplice, veloce ed economico.", k:"no"}},
+  q2:{q:"2 · Serve che i dati, una volta scritti, <b>non siano modificabili né cancellabili</b> da nessuno?", yes:"q3", no:{v:"Ti basta un database (con backup).", d:"Se un buon archivio con copie di sicurezza è sufficiente, non serve la blockchain.", k:"no"}},
+  q3:{q:"3 · Esiste già <b>un'autorità centrale di cui tutti si fidano</b> e che può tenere il registro?", yes:{v:"Probabilmente non serve la blockchain.", d:"Se un ente terzo fidato può custodire il registro, spesso è la soluzione più efficiente.", k:"no"}, no:{v:"✅ Qui la blockchain aggiunge valore reale.", d:"Più parti in conflitto + immutabilità necessaria + nessuna autorità unica accettata: è il caso d'uso legittimo.", k:"yes"}},
+};
+let treeNode="start", treePath=[];
+function treeRender(){
+  const box=document.getElementById("treeBox"); if(!box) return;
+  const n=TREE[treeNode];
+  if(n.q){
+    box.innerHTML=`<div class="path">${treePath.join(" · ")||"&nbsp;"}</div><div class="q">${n.q}</div>
+      <div class="toolrow" style="justify-content:center;"><button class="btn small" data-ans="yes">Sì</button><button class="btn ghost small" data-ans="no">No</button></div>`;
+  }
+}
+function treeVerdict(res){
+  const box=document.getElementById("treeBox");
+  box.innerHTML=`<div class="path">${treePath.join(" · ")}</div><div class="verdict ${res.k}">${res.v}</div><p style="max-width:640px">${res.d}</p>`;
+}
+function initTree(){
+  treeNode="start"; treePath=[]; treeRender();
+  const box=document.getElementById("treeBox");
+  box.addEventListener("click",e=>{
+    const a=e.target.dataset.ans; if(!a) return;
+    const n=TREE[treeNode]; treePath.push(a==="yes"?"Sì":"No");
+    const nx=n[a];
+    if(typeof nx==="string"){treeNode=nx; treeRender();}
+    else treeVerdict(nx);
+  });
+  const rb=document.getElementById("treeReset"); if(rb) rb.onclick=()=>{treeNode="start"; treePath=[]; treeRender();};
+}
+
+/* ============ SIM TIMERS ============ */
+const TIMERS={
+  B:[["Round 1 · Cosa mettere on-chain",8],["Round 2 · Pubblica o permessa",7],["Round 3 · Chi valida l'ingresso (oracolo)",10],["Round 4 · 🌱 L'oliveto che cattura CO₂",12],["Round 5 · Prezzo e firma",8]],
+};
+const tState={};
+function tTotal(key){return TIMERS[key].reduce((a,p)=>a+p[1]*60,0);}
+function tInit(key){tState[key]={idx:0, left:TIMERS[key][0][1]*60, run:false, int:null}; tPaint(key);}
+function tPaint(key){
+  const s=tState[key], ph=TIMERS[key];
+  let rem=s.left; for(let i=s.idx+1;i<ph.length;i++) rem+=ph[i][1]*60;
+  document.getElementById("timer"+key+"clock").textContent=fmt(rem);
+  document.getElementById("timer"+key+"phase").textContent=ph[s.idx][0];
+  const nx=ph[s.idx+1]; document.getElementById("timer"+key+"next").textContent=nx?("Poi: "+nx[0]):"Ultima fase";
+}
+function tTick(key){
+  const s=tState[key], ph=TIMERS[key];
+  if(s.left>0){s.left--;}
+  else if(s.idx<ph.length-1){s.idx++; s.left=ph[s.idx][1]*60;}
+  else {clearInterval(s.int); s.run=false;}
+  tPaint(key);
+}
+function tStart(key){const s=tState[key]; if(s.run){clearInterval(s.int); s.run=false; return;} s.run=true; s.int=setInterval(()=>tTick(key),1000);}
+function tSkip(key){const s=tState[key], ph=TIMERS[key]; if(s.idx<ph.length-1){s.idx++; s.left=ph[s.idx][1]*60; tPaint(key);}}
+document.addEventListener("click",e=>{
+  if(e.target.dataset.tstart) tStart(e.target.dataset.tstart);
+  if(e.target.dataset.tskip) tSkip(e.target.dataset.tskip);
+  if(e.target.dataset.treset){clearInterval(tState[e.target.dataset.treset].int); tInit(e.target.dataset.treset);}
+});
+
+/* ============ INIT ============ */
+initMenti(); initHash(); initChain(); initCons(); initTree(); tInit("B"); go(0);
+</script>
+
+</body>
+</html>
